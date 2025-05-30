@@ -13,3 +13,78 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Restaurant {
+  id          String   @id @default(uuid()) @map("restaurant_id")
+  name        String
+  description String?
+  address     String
+  phone       String?
+  email       String?
+  location    Json?    @map("location")
+  openingDays String[] @map("opening_days")
+  openingHour Int?     @map("opening_hour") // unix timestamp (minutes)
+  closingHour Int?     @map("closing_hour") // unix timestamp (minutes)
+  isOpen    Boolean  @default(true) @map("is_active")
+
+  menus Menu[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("restaurants")
+}
+
+model Menu {
+  id            String    @id @default(uuid()) @map("menu_id")
+  restaurant_id String
+  name          String
+  description   String?
+  start_date    DateTime? @db.Date // Use @db.Date for date-only fields if supported by your DB
+  end_date      DateTime? @db.Date
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now()) @map("created_at")
+  updated_at    DateTime  @updatedAt @map("updated_at")
+
+  restaurant Restaurant     @relation(fields: [restaurant_id], references: [id])
+  categories MenuCategory[]
+
+  @@map("menus")
+}
+
+model MenuCategory {
+  id            String   @id @default(uuid()) @map("category_id")
+  menu_id       String
+  name          String
+  description   String?
+  display_order Int      @default(0)
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @updatedAt @map("updated_at")
+
+  menu  Menu       @relation(fields: [menu_id], references: [id])
+  items MenuItem[]
+
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id                String   @id @default(uuid()) @map("item_id")
+  category_id       String
+  name              String
+  description       String?
+  price             Decimal  @db.Decimal(10, 2) // Precision for monetary values
+  currency          String   @default("INR")
+  image_url         String?
+  ingredients       String[]
+  is_available      Boolean  @default(true)
+  prep_time_minutes Int?
+
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  category MenuCategory @relation(fields: [category_id], references: [id])
+
+  @@map("menu_items")
+}
